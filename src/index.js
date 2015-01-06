@@ -2,6 +2,7 @@ var events = require("./events");
 var utils = require("./utils");
 var themes = require("./themes");
 var charsets = require("./charsets");
+var str_width = require("east-asian-width").str_width;
 
 function Terminal(cols, rows) {
     events.EventEmitter.call(this);
@@ -511,6 +512,9 @@ Terminal.prototype.refresh = function (a, k) {
             this.ydisp === this.ybase && !this.cursorHidden ? this.x : -1;
         x = this.defAttr;
         for (v = 0; v < p; v++) {
+
+            if(typeof z[v] === 'undefined') break;
+
             q = z[v][0];
             u = z[v][1];
             v === y && (t = q, q = -1);
@@ -614,7 +618,7 @@ Terminal.prototype._write = function (a) {
             this.state = 1;
             break;
         default:
-            " " <= f && (this.charset && this.charset[f] && (f = this.charset[f]), this.x >= this.cols && (this.x = 0, this.y++, this.y > this.scrollBottom && (this.y--, this.scroll())), this.lines[this.y + this.ybase][this.x] = [this.curAttr, f], this.x++, this.updateRange(this.y))
+            " " <= f && (this.charset && this.charset[f] && (f = this.charset[f]), this.x >= this.cols && (this.x = 0, this.y++, this.y > this.scrollBottom && (this.y--, this.scroll())), this.writeChar(f), this.x++, this.updateRange(this.y))
         }
         break;
     case 1:
@@ -987,6 +991,19 @@ Terminal.prototype._write = function (a) {
     }
     this.updateRange(this.y);
     this.refresh(this.refreshStart, this.refreshEnd)
+};
+
+// add full-width support
+Terminal.prototype.writeChar = function(f) {
+    var line = this.lines[this.y + this.ybase],
+      x = this.x;
+
+    line[x] = [this.curAttr, f];
+
+    if( str_width(f) === 2 && x < this.cols - 1){
+        line.splice(x + 1, 1);
+    }
+
 };
 
 Terminal.prototype.writeln = function (a) {
@@ -1529,12 +1546,18 @@ Terminal.prototype.deviceStatus = function (a) {
 };
 
 Terminal.prototype.insertChars = function (a) {
-    var c, k, f;
+    var c, k, f, g;
     a = a[0];
     1 > a && (a = 1);
     c = this.y + this.ybase;
     k = this.x;
-    for (f = [this.curAttr, " "]; a-- && k < this.cols;) this.lines[c].splice(k++, 0, f), this.lines[c].pop()
+    for (; a-- && str_width(this.lines[c].slice(0, k + 1)) < this.cols;){
+        g = str_width(this.lines[c].pop());
+        while(g--){
+            f = [this.curAttr, " "]
+            this.lines[c].splice(k++, 0, f)
+        }
+    }
 };
 
 Terminal.prototype.cursorNextLine = function (a) {
@@ -1584,20 +1607,36 @@ Terminal.prototype.deleteLines = function (a) {
 };
 
 Terminal.prototype.deleteChars = function (a) {
-    var c, k;
+    var c, k, g;
     a = a[0];
     1 > a && (a = 1);
     c = this.y + this.ybase;
-    for (k = [this.curAttr, " "]; a--;) this.lines[c].splice(this.x, 1), this.lines[c].push(k)
+    for (; a--;) {
+        g = str_width(this.lines[c].splice(this.x, 1)[0])
+        while(g--) {
+            k = [this.curAttr, " "]
+            this.lines[c].push(k)
+        }
+    }
 };
 
 Terminal.prototype.eraseChars = function (a) {
-    var c, k, f;
+    var c, k, f, g;
     a = a[0];
     1 > a && (a = 1);
     c = this.y + this.ybase;
     k = this.x;
-    for (f = [this.curAttr, " "]; a-- && k < this.cols;) this.lines[c][k++] = f
+
+    for (; a-- && str_width(this.lines[c].slice(0, k + 1)) < this.cols;){
+
+        g = str_width(this.lines[c][k])
+        f = [this.curAttr, " "]
+        if (g == 2) {
+            this.lines[c].splice(k++, 1, f, [this.curAttr, " "])
+        }else {
+            this.lines[c].splice(k++, 1, f)
+        }
+    }
 };
 
 Terminal.prototype.charPosAbsolute = function (a) {
