@@ -325,34 +325,9 @@ Terminal.prototype.open = function (parent) {
         }, !0);
         events.on(this.inputElement, "paste", function (c) {
             setTimeout(function () {
-                //console.log('paste!!');
                 that.commitInput("", c)
             }, 20)
         });
-        //events.on(this.inputElement , "compositionupdate", function (c) {
-        //    console.log("compositionupdate:" + c);
-        //});
-        //events.on(this.inputElement.inputMethodContext , "candidatewindowshow", function (c) {
-        //    console.log("candidatewindowshow:" + c);
-        //});
-        /*events.on(this.inputElement, "input", function (c) {
-            var k = that.inputElement.value;
-            
-            var r = "";
-            for (i = 0; i < that.lastLength; i ++) {
-                console.log("log1:" + r);
-                r += "\u007f";
-            }
-            that.lastLength = k.length
-            console.log("log:" + r);
-            that.send(r);
-            setTimeout(function () {
-                console.log(k + ":" + k.length);
-                console.log("input!!");
-                
-                that.commitInput("", c)
-            }, 20)
-        });*/
         this.bindMouse();
         null == Terminal.brokenBold && (Terminal.brokenBold = utils.isBoldBroken());
         this.element.style.backgroundColor = this.colors[256];
@@ -637,7 +612,6 @@ Terminal.prototype._write = function (a) {
                 x = this.x - 1;
             var lastChar = line[x][1];
             if (typeof lastChar === 'string') {
-                //console.log('lastChar:' + lastChar + " " + (typeof lastChar === 'string') + ' ' + (str_width(lastChar) === 2));// + ' ' + str_width(lastChar) === 2);
                 if (str_width(lastChar) === 2)
                     this.isBackspace = !this.isBackspace;
 
@@ -1253,10 +1227,8 @@ Terminal.prototype.keyDown = function (a) {
 };
 
 Terminal.prototype.keyUp = function (e) {
-    //console.log("keyUp");
     var that = this;
     var a = this.inputElement;
-    //console.log("e.keyCode:" + a.value + " " + e.keyCode);
     if (this.inComposition && (!a.value || Terminal.keytable[e.keyCode]))
         setTimeout(function(){that.onCompositionEnd(that);}, 0);
     if ((a.value.charCodeAt(0)||0) < 129 && e.keyCode != 13) {
@@ -1267,7 +1239,6 @@ Terminal.prototype.keyUp = function (e) {
 };
 
 Terminal.prototype.onCompositionStart = function (e) {
-    //console.log("onCompositionStart");
     var that = this;
     if(this.inComposition)
         return;
@@ -1276,29 +1247,12 @@ Terminal.prototype.onCompositionStart = function (e) {
 };
 
 Terminal.prototype.onCompositionUpdate = function (that, e) {
-    //console.log("onCompositionUpdate");
-    //console.log(that.inComposition);
     if (!that.inComposition)
         return;
     var text = that.inputElement;
     var val = text.value.replace(/\x01/g, "");
-    //if (that.inComposition.lastValue === val) return;
 
-    //var k = text.value;
-
-    //if (that.inComposition && that.inComposition.lastValue) {
-    //
-    //    var r = "";
-    //    for (i = 0; i < that.inComposition.lastValue.length; i ++) {
-    //        console.log("log1:" + r);
-    //        r += "\u007f";
-    //    }
-    //    //that.lastLength = k.length
-    //    console.log("log:" + r);
-    //    that.send(r);
-    //}
     setTimeout(function () {
-        //console.log(k + ":" + k.length);
         that.commitInput("", e);
     }, 20);
 
@@ -1306,7 +1260,6 @@ Terminal.prototype.onCompositionUpdate = function (that, e) {
 };
 
 Terminal.prototype.onCompositionEnd = function (that) {
-    //console.log("onCompositionEnd");
     var c = that.inComposition;
     that.inComposition = false;
     var text = that.inputElement;
