@@ -47,6 +47,7 @@ Terminal.screenKeys = !1;
 Terminal.programFeatures = !1;
 Terminal.debug = !1;
 Terminal.focus = null;
+Terminal.keytable = { 13:1, 27:1, 32:1 };
 
 Terminal.prototype.resetState = function(cols, rows) {
     this.cursorState = this.y = this.x = this.ydisp = this.ybase = 0;
@@ -88,6 +89,8 @@ Terminal.prototype.resetState = function(cols, rows) {
     for (var i = this.rows; i--;) this.lines.push(this.blankLine());
     this.tabs;
     this.setupStops();
+    this.inComposition = false;
+    this.isBackspace = false;
 };
 
 Terminal.prototype.focus = function () {
@@ -199,6 +202,9 @@ Terminal.prototype.bindKeys = function () {
         }, !0);
         events.on(this.inputElement, "keypress", function (c) {
             return that.keyPress(c)
+        }, !0);
+        events.on(this.inputElement, "keyup", function (c) {
+            return that.keyUp(c)
         }, !0);
         events.on(document, "keydown", function (c) {
             var k = (Terminal.isMac && c.metaKey || !Terminal.isMac && c.ctrlKey) && 67 === c.keyCode;
@@ -319,9 +325,34 @@ Terminal.prototype.open = function (parent) {
         }, !0);
         events.on(this.inputElement, "paste", function (c) {
             setTimeout(function () {
+                //console.log('paste!!');
                 that.commitInput("", c)
             }, 20)
         });
+        //events.on(this.inputElement , "compositionupdate", function (c) {
+        //    console.log("compositionupdate:" + c);
+        //});
+        //events.on(this.inputElement.inputMethodContext , "candidatewindowshow", function (c) {
+        //    console.log("candidatewindowshow:" + c);
+        //});
+        /*events.on(this.inputElement, "input", function (c) {
+            var k = that.inputElement.value;
+            
+            var r = "";
+            for (i = 0; i < that.lastLength; i ++) {
+                console.log("log1:" + r);
+                r += "\u007f";
+            }
+            that.lastLength = k.length
+            console.log("log:" + r);
+            that.send(r);
+            setTimeout(function () {
+                console.log(k + ":" + k.length);
+                console.log("input!!");
+                
+                that.commitInput("", c)
+            }, 20)
+        });*/
         this.bindMouse();
         null == Terminal.brokenBold && (Terminal.brokenBold = utils.isBoldBroken());
         this.element.style.backgroundColor = this.colors[256];
@@ -602,8 +633,22 @@ Terminal.prototype._write = function (a) {
             this.x = 0;
             break;
         case "\b":
+            var line = this.lines[this.y + this.ybase],
+                x = this.x - 1;
+            var lastChar = line[x][1];
+            if (typeof lastChar === 'string') {
+                //console.log('lastChar:' + lastChar + " " + (typeof lastChar === 'string') + ' ' + (str_width(lastChar) === 2));// + ' ' + str_width(lastChar) === 2);
+                if (str_width(lastChar) === 2)
+                    this.isBackspace = !this.isBackspace;
+
+                if (this.isBackspace) {
+                    break;
+                }
+            }
+
             0 < this.x &&
                 this.x--;
+
             break;
         case "\t":
             this.x = this.nextStop();
@@ -1207,6 +1252,90 @@ Terminal.prototype.keyDown = function (a) {
     return !0
 };
 
+Terminal.prototype.keyUp = function (e) {
+    //console.log("keyUp");
+    var that = this;
+    var a = this.inputElement;
+    //console.log("e.keyCode:" + a.value + " " + e.keyCode);
+    if (this.inComposition && (!a.value || Terminal.keytable[e.keyCode]))
+        setTimeout(function(){that.onCompositionEnd(that);}, 0);
+    if ((a.value.charCodeAt(0)||0) < 129 && e.keyCode != 13) {
+        return //syncProperty.call();
+    }
+    this.inComposition ? this.onCompositionUpdate(that, e) : this.onCompositionStart(e);
+    return !0
+};
+
+Terminal.prototype.onCompositionStart = function (e) {
+    //console.log("onCompositionStart");
+    var that = this;
+    if(this.inComposition)
+        return;
+    this.inComposition = {};
+    setTimeout(function(){that.onCompositionUpdate(that, e);}, 0);
+};
+
+Terminal.prototype.onCompositionUpdate = function (that, e) {
+    //console.log("onCompositionUpdate");
+    //console.log(that.inComposition);
+    if (!that.inComposition)
+        return;
+    var text = that.inputElement;
+    var val = text.value.replace(/\x01/g, "");
+    //if (that.inComposition.lastValue === val) return;
+
+    //var k = text.value;
+
+    //if (that.inComposition && that.inComposition.lastValue) {
+    //
+    //    var r = "";
+    //    for (i = 0; i < that.inComposition.lastValue.length; i ++) {
+    //        console.log("log1:" + r);
+    //        r += "\u007f";
+    //    }
+    //    //that.lastLength = k.length
+    //    console.log("log:" + r);
+    //    that.send(r);
+    //}
+    setTimeout(function () {
+        //console.log(k + ":" + k.length);
+        that.commitInput("", e);
+    }, 20);
+
+    that.inComposition.lastValue = val;
+};
+
+Terminal.prototype.onCompositionEnd = function (that) {
+    //console.log("onCompositionEnd");
+    var c = that.inComposition;
+    that.inComposition = false;
+    var text = that.inputElement;
+};
+
+Terminal.prototype.resetSelection = function (isEmpty) {
+    if (this.inComposition)
+        return;
+        
+    var text = this.inputElement;
+    // this prevents infinite recursion on safari 8 
+    // see https://github.com/ajaxorg/ace/issues/2114
+    this.inComposition = true;
+
+    if (inputHandler) {
+        selectionStart = 0;
+        selectionEnd = isEmpty ? 0 : text.value.length - 1;
+    } else {
+        var selectionStart = isEmpty ? 2 : 1;
+        var selectionEnd = 2;
+    }
+    // on firefox this throws if textarea is hidden
+    try {
+        text.setSelectionRange(selectionStart, selectionEnd);
+    } catch(e){}
+
+    this.inComposition = false;
+};
+
 Terminal.prototype.showBufferedText = function () {
     var a = this.inputElement;
     setTimeout(function () {
@@ -1621,6 +1750,7 @@ Terminal.prototype.deleteChars = function (a) {
 };
 
 Terminal.prototype.eraseChars = function (a) {
+    debugger
     var c, k, f, g;
     a = a[0];
     1 > a && (a = 1);
