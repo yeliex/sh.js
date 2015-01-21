@@ -506,6 +506,7 @@ Terminal.screenKeys = !1;
 Terminal.programFeatures = !1;
 Terminal.debug = !1;
 Terminal.focus = null;
+Terminal.keytable = { 13:1, 27:1, 32:1 };
 
 Terminal.prototype.resetState = function(cols, rows) {
     this.cursorState = this.y = this.x = this.ydisp = this.ybase = 0;
@@ -547,6 +548,8 @@ Terminal.prototype.resetState = function(cols, rows) {
     for (var i = this.rows; i--;) this.lines.push(this.blankLine());
     this.tabs;
     this.setupStops();
+    this.inComposition = false;
+    this.isBackspace = false;
 };
 
 Terminal.prototype.focus = function () {
@@ -658,6 +661,9 @@ Terminal.prototype.bindKeys = function () {
         }, !0);
         events.on(this.inputElement, "keypress", function (c) {
             return that.keyPress(c)
+        }, !0);
+        events.on(this.inputElement, "keyup", function (c) {
+            return that.keyUp(c)
         }, !0);
         events.on(document, "keydown", function (c) {
             var k = (Terminal.isMac && c.metaKey || !Terminal.isMac && c.ctrlKey) && 67 === c.keyCode;
@@ -998,10 +1004,29 @@ Terminal.prototype.refresh = function (a, k) {
         this.children[f].innerHTML = s
     }
     H && H.appendChild(this.element)
+
+    this.redrawInput();
 };
 
 Terminal.prototype.redrawCursor = function () {
-    this.refresh(this.y, this.y)
+    this.refresh(this.y, this.y);
+};
+
+Terminal.prototype.redrawInput = function () {
+    var cursorElement = $(".terminal-cursor");
+    var inputTextArea = $(".terminal-input");
+    var cursorLeft, cursorTop;
+
+    if(cursorElement && cursorElement.offset()) {
+        //console.log("redrawCursor:" + cursorElement.offset().top + " " + cursorElement.offset().left);
+        //console.log("redrawCursor:" + (cursorElement.offset().top - $(this.containerElement).offset().top) + " " + ($('.terminal-cursor').offset().left - $(this.containerElement).offset().left));
+        cursorLeft = cursorElement.offset().left - $(this.containerElement).offset().left;
+        cursorTop = cursorElement.offset().top - $(this.containerElement).offset().top;
+        inputTextArea.css("top",cursorTop);
+        inputTextArea.css("left",cursorLeft);
+
+
+    }
 };
 
 Terminal.prototype.showCursor = function () {
@@ -1061,8 +1086,21 @@ Terminal.prototype._write = function (a) {
             this.x = 0;
             break;
         case "\b":
+            var line = this.lines[this.y + this.ybase],
+                x = this.x - 1;
+            var lastChar = line[x][1];
+            if (typeof lastChar === 'string') {
+                if (str_width(lastChar) === 2)
+                    this.isBackspace = !this.isBackspace;
+
+                if (this.isBackspace) {
+                    break;
+                }
+            }
+
             0 < this.x &&
                 this.x--;
+
             break;
         case "\t":
             this.x = this.nextStop();
@@ -1666,6 +1704,69 @@ Terminal.prototype.keyDown = function (a) {
     return !0
 };
 
+Terminal.prototype.keyUp = function (e) {
+    var that = this;
+    var a = this.inputElement;
+    if (this.inComposition && (!a.value || Terminal.keytable[e.keyCode]))
+        setTimeout(function(){that.onCompositionEnd(that);}, 0);
+    if ((a.value.charCodeAt(0)||0) < 129 && e.keyCode != 13) {
+        return //syncProperty.call();
+    }
+    this.inComposition ? this.onCompositionUpdate(that, e) : this.onCompositionStart(e);
+    return !0
+};
+
+Terminal.prototype.onCompositionStart = function (e) {
+    var that = this;
+    if(this.inComposition)
+        return;
+    this.inComposition = {};
+    setTimeout(function(){that.onCompositionUpdate(that, e);}, 0);
+};
+
+Terminal.prototype.onCompositionUpdate = function (that, e) {
+    if (!that.inComposition)
+        return;
+    var text = that.inputElement;
+    var val = text.value.replace(/\x01/g, "");
+
+    setTimeout(function () {
+        that.commitInput("", e);
+    }, 20);
+
+    that.inComposition.lastValue = val;
+};
+
+Terminal.prototype.onCompositionEnd = function (that) {
+    var c = that.inComposition;
+    that.inComposition = false;
+    var text = that.inputElement;
+};
+
+Terminal.prototype.resetSelection = function (isEmpty) {
+    if (this.inComposition)
+        return;
+        
+    var text = this.inputElement;
+    // this prevents infinite recursion on safari 8 
+    // see https://github.com/ajaxorg/ace/issues/2114
+    this.inComposition = true;
+
+    if (inputHandler) {
+        selectionStart = 0;
+        selectionEnd = isEmpty ? 0 : text.value.length - 1;
+    } else {
+        var selectionStart = isEmpty ? 2 : 1;
+        var selectionEnd = 2;
+    }
+    // on firefox this throws if textarea is hidden
+    try {
+        text.setSelectionRange(selectionStart, selectionEnd);
+    } catch(e){}
+
+    this.inComposition = false;
+};
+
 Terminal.prototype.showBufferedText = function () {
     var a = this.inputElement;
     setTimeout(function () {
@@ -2080,6 +2181,7 @@ Terminal.prototype.deleteChars = function (a) {
 };
 
 Terminal.prototype.eraseChars = function (a) {
+    debugger
     var c, k, f, g;
     a = a[0];
     1 > a && (a = 1);
