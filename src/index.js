@@ -545,10 +545,25 @@ Terminal.prototype.refresh = function (a, k) {
         this.children[f].innerHTML = s
     }
     H && H.appendChild(this.element)
+
+    this.redrawInput();
 };
 
 Terminal.prototype.redrawCursor = function () {
-    this.refresh(this.y, this.y)
+    this.refresh(this.y, this.y);
+};
+
+Terminal.prototype.redrawInput = function () {
+    var cursorElement = $(".terminal-cursor");
+    var inputTextArea = $(".terminal-input");
+    var cursorLeft, cursorTop;
+
+    if(cursorElement && cursorElement.offset()) {
+        cursorLeft = cursorElement.offset().left - $(this.containerElement).offset().left;
+        cursorTop = cursorElement.offset().top - $(this.containerElement).offset().top;
+        inputTextArea.css("top",cursorTop);
+        inputTextArea.css("left",cursorLeft);
+    }
 };
 
 Terminal.prototype.showCursor = function () {
