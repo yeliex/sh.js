@@ -787,6 +787,7 @@ Terminal.prototype.open = function (parent) {
                 that.commitInput("", c)
             }, 20)
         });
+        console.log("bindMouse:start");
         this.bindMouse();
         null == Terminal.brokenBold && (Terminal.brokenBold = utils.isBoldBroken());
         this.element.style.backgroundColor = this.colors[256];
@@ -828,6 +829,7 @@ Terminal.prototype.sizeToFit = function () {
 Terminal.prototype.bindMouse = function () {
     function a(a) {
         var c, k, p, y;
+        console.log("bindMouse a:" + a.type);
         switch (a.type) {
         case "mousedown":
             c =
@@ -913,7 +915,9 @@ Terminal.prototype.bindMouse = function () {
     var q = this.element,
         s = this,
         F = 32,
-        p = "onmousewheel" in window ? "mousewheel" : "DOMMouseScroll";
+        p = "onmousewheel" in window ? "mousewheel" : "DOMMouseScroll",
+        dy = 1;
+    console.log("bindMouse p:" + p);
     events.on(q, "mousedown", function (f) {
         if (s.mouseEvents) {
             a(f);
@@ -951,10 +955,15 @@ Terminal.prototype.bindMouse = function () {
         s.selectionMode || s.focus()
     });
     events.on(q, p, function (c) {
+        console.log("bindMouse1:" + p + " " + s.mouseEvents);
+
         if (s.mouseEvents && !s.x10Mouse && !s.vt300Mouse && !s.decLocator) return a(c), events.cancel(c)
     });
     events.on(q, p, function (a) {
-        if (!s.mouseEvents && !s.applicationKeypad) return "DOMMouseScroll" === a.type ? s.scrollDisp(0 > a.detail ? -5 : 5) : s.scrollDisp(0 < a.wheelDeltaY ? -5 : 5), events.cancel(a)
+        console.log("bindMouse2:" + p + " " + s.mouseEvents);
+        //if (!s.mouseEvents && !s.applicationKeypad) return "DOMMouseScroll" === a.type ? s.scrollDisp(0 > a.detail ? -5 : 5) : s.scrollDisp(0 < a.wheelDeltaY ? -5 : 5), events.cancel(a)
+
+        if (!s.mouseEvents) return "DOMMouseScroll" === a.type ? s.scrollDisp(0 > a.detail ? -dy : dy) : s.scrollDisp(0 < a.wheelDeltaY ? -dy : dy), events.cancel(a)
     })
 };
 
@@ -1014,18 +1023,13 @@ Terminal.prototype.redrawCursor = function () {
 
 Terminal.prototype.redrawInput = function () {
     var cursorElement = $(".terminal-cursor");
-    var inputTextArea = $(".terminal-input");
     var cursorLeft, cursorTop;
 
     if(cursorElement && cursorElement.offset()) {
-        //console.log("redrawCursor:" + cursorElement.offset().top + " " + cursorElement.offset().left);
-        //console.log("redrawCursor:" + (cursorElement.offset().top - $(this.containerElement).offset().top) + " " + ($('.terminal-cursor').offset().left - $(this.containerElement).offset().left));
         cursorLeft = cursorElement.offset().left - $(this.containerElement).offset().left;
         cursorTop = cursorElement.offset().top - $(this.containerElement).offset().top;
-        inputTextArea.css("top",cursorTop);
-        inputTextArea.css("left",cursorLeft);
-
-
+        $(this.inputElement).css("top",cursorTop);
+        $(this.inputElement).css("left",cursorLeft);
     }
 };
 
