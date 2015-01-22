@@ -48,6 +48,7 @@ Terminal.programFeatures = !1;
 Terminal.debug = !1;
 Terminal.focus = null;
 Terminal.keytable = { 13:1, 27:1, 32:1 };
+Terminal.imeKeytable = { 219:1, 221:1 };
 
 Terminal.prototype.resetState = function(cols, rows) {
     this.cursorState = this.y = this.x = this.ydisp = this.ybase = 0;
@@ -556,7 +557,7 @@ Terminal.prototype.redrawCursor = function () {
 };
 
 Terminal.prototype.redrawInput = function () {
-    var cursorElement = $(".terminal-cursor");
+    var cursorElement = $(this.containerElement).find(".terminal-cursor");
     var cursorLeft, cursorTop;
 
     if(cursorElement && cursorElement.offset()) {
@@ -1243,11 +1244,14 @@ Terminal.prototype.keyDown = function (a) {
 };
 
 Terminal.prototype.keyUp = function (e) {
+    //console.log("Keyup:" + e.keyCode  + " " + this.inComposition);
     var that = this;
     var a = this.inputElement;
     if (this.inComposition && (!a.value || Terminal.keytable[e.keyCode]))
         setTimeout(function(){that.onCompositionEnd(that);}, 0);
-    if ((a.value.charCodeAt(0)||0) < 129 && e.keyCode != 13) {
+    //console.log("a.value.charCodeAt(0):" + a.value.charCodeAt(0));
+    if (((a.value.charCodeAt(0)||0) < 129 && !Terminal.keytable[e.keyCode] && (e.keyCode < 49 || e.keyCode > 58))
+        || Terminal.imeKeytable[e.keyCode]) {
         return //syncProperty.call();
     }
     this.inComposition ? this.onCompositionUpdate(that, e) : this.onCompositionStart(e);
@@ -1255,6 +1259,7 @@ Terminal.prototype.keyUp = function (e) {
 };
 
 Terminal.prototype.onCompositionStart = function (e) {
+    //console.log("onCompositionStart:" + e.keyCode + " " + this.inComposition);
     var that = this;
     if(this.inComposition)
         return;
@@ -1263,6 +1268,7 @@ Terminal.prototype.onCompositionStart = function (e) {
 };
 
 Terminal.prototype.onCompositionUpdate = function (that, e) {
+    //console.log("onCompositionUpdate:" + e.keyCode);
     if (!that.inComposition)
         return;
     var text = that.inputElement;
@@ -1276,6 +1282,7 @@ Terminal.prototype.onCompositionUpdate = function (that, e) {
 };
 
 Terminal.prototype.onCompositionEnd = function (that) {
+    //console.log("onCompositionEnd");
     var c = that.inComposition;
     that.inComposition = false;
     var text = that.inputElement;

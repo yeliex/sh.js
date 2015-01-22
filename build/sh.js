@@ -507,6 +507,7 @@ Terminal.programFeatures = !1;
 Terminal.debug = !1;
 Terminal.focus = null;
 Terminal.keytable = { 13:1, 27:1, 32:1 };
+Terminal.imeKeytable = { 219:1, 221:1 };
 
 Terminal.prototype.resetState = function(cols, rows) {
     this.cursorState = this.y = this.x = this.ydisp = this.ybase = 0;
@@ -787,7 +788,6 @@ Terminal.prototype.open = function (parent) {
                 that.commitInput("", c)
             }, 20)
         });
-        console.log("bindMouse:start");
         this.bindMouse();
         null == Terminal.brokenBold && (Terminal.brokenBold = utils.isBoldBroken());
         this.element.style.backgroundColor = this.colors[256];
@@ -829,7 +829,6 @@ Terminal.prototype.sizeToFit = function () {
 Terminal.prototype.bindMouse = function () {
     function a(a) {
         var c, k, p, y;
-        console.log("bindMouse a:" + a.type);
         switch (a.type) {
         case "mousedown":
             c =
@@ -917,7 +916,6 @@ Terminal.prototype.bindMouse = function () {
         F = 32,
         p = "onmousewheel" in window ? "mousewheel" : "DOMMouseScroll",
         dy = 1;
-    console.log("bindMouse p:" + p);
     events.on(q, "mousedown", function (f) {
         if (s.mouseEvents) {
             a(f);
@@ -955,14 +953,10 @@ Terminal.prototype.bindMouse = function () {
         s.selectionMode || s.focus()
     });
     events.on(q, p, function (c) {
-        console.log("bindMouse1:" + p + " " + s.mouseEvents);
-
         if (s.mouseEvents && !s.x10Mouse && !s.vt300Mouse && !s.decLocator) return a(c), events.cancel(c)
     });
     events.on(q, p, function (a) {
-        console.log("bindMouse2:" + p + " " + s.mouseEvents);
         //if (!s.mouseEvents && !s.applicationKeypad) return "DOMMouseScroll" === a.type ? s.scrollDisp(0 > a.detail ? -5 : 5) : s.scrollDisp(0 < a.wheelDeltaY ? -5 : 5), events.cancel(a)
-
         if (!s.mouseEvents) return "DOMMouseScroll" === a.type ? s.scrollDisp(0 > a.detail ? -dy : dy) : s.scrollDisp(0 < a.wheelDeltaY ? -dy : dy), events.cancel(a)
     })
 };
@@ -1022,7 +1016,7 @@ Terminal.prototype.redrawCursor = function () {
 };
 
 Terminal.prototype.redrawInput = function () {
-    var cursorElement = $(".terminal-cursor");
+    var cursorElement = $(this.containerElement).find(".terminal-cursor");
     var cursorLeft, cursorTop;
 
     if(cursorElement && cursorElement.offset()) {
@@ -1709,11 +1703,14 @@ Terminal.prototype.keyDown = function (a) {
 };
 
 Terminal.prototype.keyUp = function (e) {
+    console.log("Keyup:" + e.keyCode  + " " + this.inComposition);
     var that = this;
     var a = this.inputElement;
     if (this.inComposition && (!a.value || Terminal.keytable[e.keyCode]))
         setTimeout(function(){that.onCompositionEnd(that);}, 0);
-    if ((a.value.charCodeAt(0)||0) < 129 && e.keyCode != 13) {
+    console.log("a.value.charCodeAt(0):" + a.value.charCodeAt(0));
+    if (((a.value.charCodeAt(0)||0) < 129 && !Terminal.keytable[e.keyCode] && (e.keyCode < 49 || e.keyCode > 58))
+        || Terminal.imeKeytable[e.keyCode]) {
         return //syncProperty.call();
     }
     this.inComposition ? this.onCompositionUpdate(that, e) : this.onCompositionStart(e);
@@ -1721,6 +1718,7 @@ Terminal.prototype.keyUp = function (e) {
 };
 
 Terminal.prototype.onCompositionStart = function (e) {
+    console.log("onCompositionStart:" + e.keyCode + " " + this.inComposition);
     var that = this;
     if(this.inComposition)
         return;
@@ -1729,6 +1727,7 @@ Terminal.prototype.onCompositionStart = function (e) {
 };
 
 Terminal.prototype.onCompositionUpdate = function (that, e) {
+    console.log("onCompositionUpdate:" + e.keyCode);
     if (!that.inComposition)
         return;
     var text = that.inputElement;
@@ -1742,6 +1741,7 @@ Terminal.prototype.onCompositionUpdate = function (that, e) {
 };
 
 Terminal.prototype.onCompositionEnd = function (that) {
+    console.log("onCompositionEnd");
     var c = that.inComposition;
     that.inComposition = false;
     var text = that.inputElement;
