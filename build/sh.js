@@ -1703,12 +1703,12 @@ Terminal.prototype.keyDown = function (a) {
 };
 
 Terminal.prototype.keyUp = function (e) {
-    console.log("Keyup:" + e.keyCode  + " " + this.inComposition);
+    //console.log("Keyup:" + e.keyCode  + " " + this.inComposition);
     var that = this;
     var a = this.inputElement;
     if (this.inComposition && (!a.value || Terminal.keytable[e.keyCode]))
         setTimeout(function(){that.onCompositionEnd(that);}, 0);
-    console.log("a.value.charCodeAt(0):" + a.value.charCodeAt(0));
+    //console.log("a.value.charCodeAt(0):" + a.value.charCodeAt(0));
     if (((a.value.charCodeAt(0)||0) < 129 && !Terminal.keytable[e.keyCode] && (e.keyCode < 49 || e.keyCode > 58))
         || Terminal.imeKeytable[e.keyCode]) {
         return //syncProperty.call();
@@ -1718,7 +1718,7 @@ Terminal.prototype.keyUp = function (e) {
 };
 
 Terminal.prototype.onCompositionStart = function (e) {
-    console.log("onCompositionStart:" + e.keyCode + " " + this.inComposition);
+    //console.log("onCompositionStart:" + e.keyCode + " " + this.inComposition);
     var that = this;
     if(this.inComposition)
         return;
@@ -1727,7 +1727,7 @@ Terminal.prototype.onCompositionStart = function (e) {
 };
 
 Terminal.prototype.onCompositionUpdate = function (that, e) {
-    console.log("onCompositionUpdate:" + e.keyCode);
+    //console.log("onCompositionUpdate:" + e.keyCode);
     if (!that.inComposition)
         return;
     var text = that.inputElement;
@@ -1741,7 +1741,7 @@ Terminal.prototype.onCompositionUpdate = function (that, e) {
 };
 
 Terminal.prototype.onCompositionEnd = function (that) {
-    console.log("onCompositionEnd");
+    //console.log("onCompositionEnd");
     var c = that.inComposition;
     that.inComposition = false;
     var text = that.inputElement;
@@ -1750,9 +1750,9 @@ Terminal.prototype.onCompositionEnd = function (that) {
 Terminal.prototype.resetSelection = function (isEmpty) {
     if (this.inComposition)
         return;
-        
+
     var text = this.inputElement;
-    // this prevents infinite recursion on safari 8 
+    // this prevents infinite recursion on safari 8
     // see https://github.com/ajaxorg/ace/issues/2114
     this.inComposition = true;
 
@@ -1878,6 +1878,9 @@ Terminal.prototype.resize = function (w, h) {
         }
     } else if (v > h) {
         for (; v-- > h;) {
+            if (this.ybase > 0 && this.y == h ) {
+                this.scroll();
+            }
             if (this.lines.length > (h + this.ybase)) this.lines.pop();
             if (this.children.length > h) {
                 f = this.children.pop();

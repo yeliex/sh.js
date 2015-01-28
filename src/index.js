@@ -1291,9 +1291,9 @@ Terminal.prototype.onCompositionEnd = function (that) {
 Terminal.prototype.resetSelection = function (isEmpty) {
     if (this.inComposition)
         return;
-        
+
     var text = this.inputElement;
-    // this prevents infinite recursion on safari 8 
+    // this prevents infinite recursion on safari 8
     // see https://github.com/ajaxorg/ace/issues/2114
     this.inComposition = true;
 
@@ -1419,6 +1419,9 @@ Terminal.prototype.resize = function (w, h) {
         }
     } else if (v > h) {
         for (; v-- > h;) {
+            if (this.ybase > 0 && this.y == h ) {
+                this.scroll();
+            }
             if (this.lines.length > (h + this.ybase)) this.lines.pop();
             if (this.children.length > h) {
                 f = this.children.pop();
