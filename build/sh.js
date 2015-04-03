@@ -2178,31 +2178,35 @@ Terminal.prototype.deleteChars = function (a) {
     a = a[0];
     1 > a && (a = 1);
     c = this.y + this.ybase;
+
     for (; a--;) {
-        g = str_width(this.lines[c].splice(this.x, 1)[0])
+        g = str_width(this.lines[c].splice(this.x, 1)[0][1]);
         while(g--) {
-            k = [this.curAttr, " "]
-            this.lines[c].push(k)
+            k = [this.curAttr, " "];
+            this.lines[c].push(k);
         }
     }
 };
 
 Terminal.prototype.eraseChars = function (a) {
-    debugger
     var c, k, f, g;
     a = a[0];
     1 > a && (a = 1);
     c = this.y + this.ybase;
     k = this.x;
 
-    for (; a-- && str_width(this.lines[c].slice(0, k + 1)) < this.cols;){
+    var tmpStr = '';
+    for (i = 0; i < this.lines[c].slice(0, k + 1); i++){
+        tmpStr += this.lines[c].slice(0, k + 1)[i][1]
+    }
 
-        g = str_width(this.lines[c][k])
-        f = [this.curAttr, " "]
+    for (; a-- && str_width(tmpStr) < this.cols;){
+        g = str_width(this.lines[c][k][1]);
+        f = [this.curAttr, " "];
         if (g == 2) {
-            this.lines[c].splice(k++, 1, f, [this.curAttr, " "])
+            this.lines[c].splice(k++, 1, f, [this.curAttr, " "]);
         }else {
-            this.lines[c].splice(k++, 1, f)
+            this.lines[c].splice(k++, 1, f);
         }
     }
 };
