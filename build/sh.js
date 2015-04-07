@@ -2040,8 +2040,31 @@ Terminal.prototype.cursorPos = function (a) {
     a = 2 <= a.length ? a[1] - 1 : 0;
     0 > c ? c = 0 : c >= this.rows && (c = this.rows - 1);
     0 > a ? a = 0 : a >= this.cols && (a = this.cols - 1);
+
+
+
     this.x = a;
-    this.y = c
+    this.y = c;
+
+    var line = this.lines[this.y + this.ybase],
+        x = this.x - 1;
+
+
+    if(line){
+        var charCount = 0;
+        for(var i = 0;i < a; i ++){
+            var tempChar = line[i][1];
+            if(tempChar && typeof tempChar === 'string')
+                if (str_width(tempChar) === 2)
+                    charCount += 2;
+                else
+                    charCount ++;
+                if (charCount == a){
+                    this.x = i + 1;
+                    break;
+                }
+        }
+    }
 };
 
 Terminal.prototype.eraseInDisplay = function (a) {
