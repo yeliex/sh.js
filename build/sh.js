@@ -1067,6 +1067,7 @@ Terminal.prototype._write = function (a) {
         f;
     this.refreshEnd = this.refreshStart = this.y;
     this.ybase !== this.ydisp && (this.ydisp = this.ybase, this.maxRange());
+
     for (; y < k; y++) switch (f = a[y], this.state) {
     case 0:
         switch (f) {
@@ -1113,7 +1114,7 @@ Terminal.prototype._write = function (a) {
             this.state = 1;
             break;
         default:
-            " " <= f && (this.charset && this.charset[f] && (f = this.charset[f]), this.x >= this.cols && (this.x = 0, this.y++, this.y > this.scrollBottom && (this.y--, this.scroll())), this.writeChar(f), this.x++, this.updateRange(this.y))
+            " " <= f && (this.charset && this.charset[f] && (f = this.charset[f]), this.getX() >= this.cols && (this.x = 0, this.y++, this.y > this.scrollBottom && (this.y--, this.scroll())), this.writeChar(f), this.x++, this.updateRange(this.y))
         }
         break;
     case 1:
@@ -1493,11 +1494,18 @@ Terminal.prototype.writeChar = function(f) {
     var line = this.lines[this.y + this.ybase],
       x = this.x;
 
+    if(line[x] && str_width(line[x][1]) === 2){
+        line.splice(x + 1, 0, [this.curAttr, " "]);
+    }
+
     line[x] = [this.curAttr, f];
 
     if( str_width(f) === 2 && x < this.cols - 1){
         line.splice(x + 1, 1);
     }
+
+    //while(line.length < this.cols)
+    //    line[line.length] = [this.curAttr, " "];
 
 };
 
@@ -1703,12 +1711,12 @@ Terminal.prototype.keyDown = function (a) {
 };
 
 Terminal.prototype.keyUp = function (e) {
-    //console.log("Keyup:" + e.keyCode  + " " + this.inComposition);
+    //this.log("Keyup:" + e.keyCode  + " " + this.inComposition);
     var that = this;
     var a = this.inputElement;
     if (this.inComposition && (!a.value || Terminal.keytable[e.keyCode]))
         setTimeout(function(){that.onCompositionEnd(that);}, 0);
-    //console.log("a.value.charCodeAt(0):" + a.value.charCodeAt(0));
+    //this.log("a.value.charCodeAt(0):" + a.value.charCodeAt(0));
     if (((a.value.charCodeAt(0)||0) < 129 && !Terminal.keytable[e.keyCode] && (e.keyCode < 49 || e.keyCode > 58))
         || Terminal.imeKeytable[e.keyCode]) {
         return //syncProperty.call();
@@ -1718,7 +1726,7 @@ Terminal.prototype.keyUp = function (e) {
 };
 
 Terminal.prototype.onCompositionStart = function (e) {
-    //console.log("onCompositionStart:" + e.keyCode + " " + this.inComposition);
+    //this.log("onCompositionStart:" + e.keyCode + " " + this.inComposition);
     var that = this;
     if(this.inComposition)
         return;
@@ -1727,7 +1735,7 @@ Terminal.prototype.onCompositionStart = function (e) {
 };
 
 Terminal.prototype.onCompositionUpdate = function (that, e) {
-    //console.log("onCompositionUpdate:" + e.keyCode);
+    //this.log("onCompositionUpdate:" + e.keyCode);
     if (!that.inComposition)
         return;
     var text = that.inputElement;
@@ -1741,7 +1749,7 @@ Terminal.prototype.onCompositionUpdate = function (that, e) {
 };
 
 Terminal.prototype.onCompositionEnd = function (that) {
-    //console.log("onCompositionEnd");
+    //this.log("onCompositionEnd");
     var c = that.inComposition;
     that.inComposition = false;
     var text = that.inputElement;
@@ -2023,14 +2031,17 @@ Terminal.prototype.cursorDown = function (a) {
 Terminal.prototype.cursorForward = function (a) {
     a = a[0];
     1 > a && (a = 1);
-    this.x += a;
+    //this.x += a;
+    this.setX(this.x, this.x + a);
+
     this.x >= this.cols && (this.x = this.cols - 1)
 };
 
 Terminal.prototype.cursorBackward = function (a) {
     a = a[0];
     1 > a && (a = 1);
-    this.x -= a;
+    //this.x -= a;
+    this.setX(this.x, this.x - a);
     0 > this.x && (this.x = 0)
 };
 
@@ -2046,26 +2057,102 @@ Terminal.prototype.cursorPos = function (a) {
     this.x = a;
     this.y = c;
 
-    var line = this.lines[this.y + this.ybase],
-        x = this.x - 1;
+    this.setX(0, a);
 
 
+    //var line = this.lines[this.y + this.ybase],
+    //    x = this.x - 1;
+    //
+    //
+    //if(line){
+    //    var charCount = 0;
+    //    for(var i = 0;i < a; i ++){
+    //        var tempChar = line[i][1];
+    //        //this.log('tmpChar:' + tempChar);
+    //
+    //        if(tempChar && typeof tempChar === 'string') {
+    //            if (str_width(tempChar) === 2)
+    //                charCount += 2;
+    //            else
+    //                charCount++;
+    //            if (charCount == a) {
+    //                this.x = i + 1;
+    //                break;
+    //            }
+    //        }
+    //    }
+    //}
+};
+
+Terminal.prototype.getX = function (){
+    var line = this.lines[this.y + this.ybase];
     if(line){
         var charCount = 0;
-        for(var i = 0;i < a; i ++){
+        for(var i = 0;i < this.x; i ++){
             var tempChar = line[i][1];
-            if(tempChar && typeof tempChar === 'string')
+            //this.log(i +' tmpChar:' + tempChar);
+
+            if(tempChar && typeof tempChar === 'string') {
                 if (str_width(tempChar) === 2)
                     charCount += 2;
                 else
                     charCount ++;
-                if (charCount == a){
-                    this.x = i + 1;
-                    break;
-                }
+            }
         }
+        return charCount;
+    } else {
+        return this.x;
     }
 };
+
+Terminal.prototype.setX = function (start, end){
+    var line = this.lines[this.y + this.ybase],
+        x = this.x - 1;
+
+    this.x = end;
+    if(line){
+        var charCount = 0;
+        if (start <= end) {
+            for(var i = start;i < end; i ++){
+                if (line[i]){
+                    var tempChar = line[i][1];
+
+                    if(tempChar && typeof tempChar === 'string') {
+                        if (str_width(tempChar) === 2)
+                            charCount += 2;
+                        else
+                            charCount++;
+                        if (charCount >= (end - start)) {
+                            this.x = i + 1;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+
+            for(var i = start;i >= end; i --){
+                if (line[i]){
+                    var tempChar = line[i][1];
+
+                    if(tempChar && typeof tempChar === 'string') {
+                        if (str_width(tempChar) === 2)
+                            charCount += 2;
+                        else
+                            charCount++;
+                        if (charCount > (start - end)) {
+                            this.x = i;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+};
+
+
 
 Terminal.prototype.eraseInDisplay = function (a) {
     switch (a[0]) {
@@ -2204,8 +2291,11 @@ Terminal.prototype.deleteChars = function (a) {
 
     for (; a--;) {
         g = str_width(this.lines[c].splice(this.x, 1)[0][1]);
-        while(g--) {
-            k = [this.curAttr, " "];
+
+        k = [this.curAttr, " "];
+        if(g > 1){
+            this.lines[c].splice(this.x, 0, k);
+        } else {
             this.lines[c].push(k);
         }
     }
