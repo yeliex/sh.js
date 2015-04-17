@@ -788,6 +788,13 @@ Terminal.prototype.open = function (parent) {
                 that.commitInput("", c)
             }, 20)
         });
+        events.on(this.element, "copy", function (c) {
+            console.log('======== onCopy =========');
+
+            setTimeout(function () {
+                that.focus();
+            }, 20)
+        });
         this.bindMouse();
         null == Terminal.brokenBold && (Terminal.brokenBold = utils.isBoldBroken());
         this.element.style.backgroundColor = this.colors[256];
@@ -1503,9 +1510,6 @@ Terminal.prototype.writeChar = function(f) {
     if( str_width(f) === 2 && x < this.cols - 1){
         line.splice(x + 1, 1);
     }
-
-    //while(line.length < this.cols)
-    //    line[line.length] = [this.curAttr, " "];
 
 };
 

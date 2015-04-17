@@ -329,6 +329,11 @@ Terminal.prototype.open = function (parent) {
                 that.commitInput("", c)
             }, 20)
         });
+        events.on(this.element, "copy", function (c) {
+            setTimeout(function () {
+                that.focus();
+            }, 20)
+        });
         this.bindMouse();
         null == Terminal.brokenBold && (Terminal.brokenBold = utils.isBoldBroken());
         this.element.style.backgroundColor = this.colors[256];
