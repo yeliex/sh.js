@@ -79,6 +79,11 @@ body {
     font-size: 13px;
     line-height: 18px;
 }
+.terminal-container .terminal i.terminal_cjk {
+    display: inline-block;
+    font-style: normal;
+    text-align: center;
+}
 .terminal-container .terminal-input {
     position: absolute;
     top: 0;

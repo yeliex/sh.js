@@ -674,7 +674,67 @@ Terminal.prototype.bindKeys = function () {
     }
 };
 
+var CHAR_COUNT = 0;
+Terminal.prototype.$testFractionalRect = function() {
+    var el = document.createElement("div");
+    this.$setMeasureNodeStyles(el.style);
+    el.style.width = "0.2px";
+    document.documentElement.appendChild(el);
+    var w = el.getBoundingClientRect().width;
+    if (w > 0 && w < 1)
+        CHAR_COUNT = 50;
+    else
+        CHAR_COUNT = 100;
+    el.parentNode.removeChild(el);
+};
+
+Terminal.prototype.$setMeasureNodeStyles = function(style, isRoot) {
+    style.width = style.height = "auto";
+    style.left = style.top = "-100px";
+    style.visibility = "hidden";
+    style.position = "fixed";
+    style.whiteSpace = "pre";
+
+    if (this.ieVer() > 0 && this.ieVer() < 8) {
+        style["font-family"] = "inherit";
+    } else {
+        style.font = "inherit";
+    }
+    style.overflow = isRoot ? "hidden" : "visible";
+};
+
+Terminal.prototype.$measureSizes = function() {
+    if (CHAR_COUNT === 50) {
+        var rect = null;
+        try {
+            rect = this.$measureNode.getBoundingClientRect();
+        } catch(e) {
+            rect = {width: 0, height:0 };
+        };
+        var size = {
+            height: rect.height,
+            width: rect.width / CHAR_COUNT
+        };
+    } else {
+        var size = {
+            height: this.$measureNode.clientHeight,
+            width: this.$measureNode.clientWidth / CHAR_COUNT
+        };
+    }
+    if (size.width === 0 || size.height === 0)
+        return null;
+    return size;
+};
+
+Terminal.prototype.getCharacterWidth = function (){
+    this.$testFractionalRect();
+    var size = this.$measureSizes();
+    return size.width;
+
+};
+
 Terminal.prototype.open = function (parent) {
+
         var that = this,
             E = 0,
             y;
@@ -682,6 +742,13 @@ Terminal.prototype.open = function (parent) {
         this.element.className = "terminal";
         this.element.spellcheck = false;
         for (this.children = []; E < this.rows; E++) y = document.createElement("div"), y.className = "terminal-row", y.setAttribute("data-row", (E + 1).toString()), this.element.appendChild(y), this.children.push(y);
+
+        this.$measureNode = document.createElement("div");
+        this.$setMeasureNodeStyles(this.$measureNode.style);
+
+        if (!CHAR_COUNT)
+            this.$testFractionalRect();
+        this.$measureNode.innerHTML = this.stringRepeat("X", CHAR_COUNT);
 
         this.inputElement = document.createElement("textarea");
         this.inputElement.className = "terminal-input";
@@ -735,6 +802,7 @@ Terminal.prototype.open = function (parent) {
         this.containerElement.appendChild(this.inputElement);
         this.containerElement.appendChild(this.screenKeysElement);
         this.containerElement.appendChild(this.sizeIndicatorElement);
+        this.element.appendChild(this.$measureNode);
 
         parent.appendChild(this.containerElement);
 
@@ -742,6 +810,14 @@ Terminal.prototype.open = function (parent) {
         this.refresh(0, this.rows - 1);
         this.bindKeys();
         this.focus();
+
+        that = this;
+
+        setTimeout(function(){
+            that.characterWidth = that.getCharacterWidth();
+            that.element.removeChild(that.$measureNode);
+        },0);
+
 
         // If we click somewhere other than a
         // terminal, unfocus the terminal.
@@ -789,8 +865,6 @@ Terminal.prototype.open = function (parent) {
             }, 20)
         });
         events.on(this.element, "copy", function (c) {
-            console.log('======== onCopy =========');
-
             setTimeout(function () {
                 that.focus();
             }, 20)
@@ -992,6 +1066,8 @@ Terminal.prototype.refresh = function (a, k) {
 
             q = z[v][0];
             u = z[v][1];
+            if(str_width(u) > 1)
+                u = "<i class='terminal_cjk' style='width:" + (this.characterWidth * 2) + "px'>" + u + "</i>";
             v === y && (t = q, q = -1);
             q !== x && (x !== this.defAttr && (s += "</span>"), q !== this.defAttr && (s += "<span ", -1 === q ? (s += 'class="terminal-cursor" ', L ? (F = t >> 9 & 511, x = t & 511) : (F = t & 511, x = t >> 9 & 511), A = t >> 18) : (F = q & 511, x = q >> 9 & 511, A = q >> 18), s += 'style="', !L && -1 === q && (s += "outline:1px solid " + this.colors[x] + ";"), A & 1 && (Terminal.brokenBold || (s += "font-weight:bold;"), 8 > x && (x += 8)), A & 2 && (s += "text-decoration:underline;"), 256 !== F && (s += "background-color:" +
                 this.colors[F] + ";"), 257 !== x && (s += "color:" + this.colors[x] + ";"), s += '">'));
@@ -1498,6 +1574,7 @@ Terminal.prototype._write = function (a) {
 
 // add full-width support
 Terminal.prototype.writeChar = function(f) {
+
     var line = this.lines[this.y + this.ybase],
       x = this.x;
 
@@ -2227,17 +2304,17 @@ Terminal.prototype.deviceStatus = function (a) {
 };
 
 Terminal.prototype.insertChars = function (a) {
+
     var c, k, f, g;
     a = a[0];
     1 > a && (a = 1);
     c = this.y + this.ybase;
     k = this.x;
-    for (; a-- && str_width(this.lines[c].slice(0, k + 1)) < this.cols;){
-        g = str_width(this.lines[c].pop());
-        while(g--){
-            f = [this.curAttr, " "]
-            this.lines[c].splice(k++, 0, f)
-        }
+    for (f = [this.curAttr, " "]; a-- && k < this.cols;) {
+        this.lines[c].splice(k++, 0, f);
+        g = str_width(this.lines[c].pop()[1]);
+        if (g > 1)
+            this.lines[c].push(f);
     }
 };
 
@@ -2293,16 +2370,14 @@ Terminal.prototype.deleteChars = function (a) {
     1 > a && (a = 1);
     c = this.y + this.ybase;
 
-    for (; a--;) {
+    for (k = [this.curAttr, " "]; a--;) {
         g = str_width(this.lines[c].splice(this.x, 1)[0][1]);
-
-        k = [this.curAttr, " "];
         if(g > 1){
             this.lines[c].splice(this.x, 0, k);
-        } else {
-            this.lines[c].push(k);
         }
+        this.lines[c].push(k);
     }
+
 };
 
 Terminal.prototype.eraseChars = function (a) {
@@ -2312,20 +2387,15 @@ Terminal.prototype.eraseChars = function (a) {
     c = this.y + this.ybase;
     k = this.x;
 
-    var tmpStr = '';
-    for (i = 0; i < this.lines[c].slice(0, k + 1); i++){
-        tmpStr += this.lines[c].slice(0, k + 1)[i][1]
+    for (f = [this.curAttr, " "]; a-- && k < this.cols;) {
+        if(str_width(this.lines[c][k][1]) > 1){
+            this.lines[c].splice(k + 1, 1, f);
+        }
+        this.lines[c][k] = f;
+
+        k++;
     }
 
-    for (; a-- && str_width(tmpStr) < this.cols;){
-        g = str_width(this.lines[c][k][1]);
-        f = [this.curAttr, " "];
-        if (g == 2) {
-            this.lines[c].splice(k++, 1, f, [this.curAttr, " "]);
-        }else {
-            this.lines[c].splice(k++, 1, f);
-        }
-    }
 };
 
 Terminal.prototype.charPosAbsolute = function (a) {
@@ -2635,6 +2705,31 @@ Terminal.charsets = charsets;
 
 Terminal.isMac = ~navigator.userAgent.indexOf("Mac");
 Terminal.isMSIE = ~navigator.userAgent.indexOf("MSIE");
+
+Terminal.prototype.ieVer = function ieVer(){
+    var iev=0;
+    var ieold = (/MSIE (\d+\.\d+);/.test(navigator.userAgent));
+    var trident = !!navigator.userAgent.match(/Trident\/7.0/);
+    var rv=navigator.userAgent.indexOf("rv:11.0");
+
+    if (ieold) iev = new Number(RegExp.$1);
+    if (navigator.appVersion.indexOf("MSIE 10") != -1) iev=10;
+    if (trident&&rv!=-1) iev=11;
+
+    return iev;
+};
+
+Terminal.prototype.stringRepeat = function (string, count) {
+    var result = '';
+    while (count > 0) {
+        if (count & 1)
+            result += string;
+
+        if (count >>= 1)
+            string += string;
+    }
+    return result;
+};
 
 Terminal.themes = themes;
 
