@@ -339,10 +339,29 @@ Terminal.prototype.open = function (parent) {
         this.screenKeysElement.appendChild(this.upKeyElement);
         this.screenKeysElement.appendChild(this.rightKeyElement);
 
+        this.vScrollbar = document.createElement("div");
+        this.vScrollbar.className = 'term_scrollbar term_scrollbar-v';
+
+        this.scrollbarInner = document.createElement("div");
+        this.scrollbarInner.className = "term_scrollbar-inner";
+
+        this.vScrollbar.appendChild(this.scrollbarInner);
+        //events.on(this.vScrollbar, "scroll", this.onScroll.bind(this));
+        events.on(this.vScrollbar, "mousedown", function(ev){
+            ev.preventDefault;
+        });
+
+        events.on(this.vScrollbar, "scroll", function(ev){
+            var newydisp = that.vScrollbar.scrollTop * that.rows / that.vScrollbar.clientHeight;
+            that.scrollDisp(Math.round(newydisp - that.ydisp));
+        });
+
+
         this.containerElement.appendChild(this.element);
         this.containerElement.appendChild(this.inputElement);
         this.containerElement.appendChild(this.screenKeysElement);
         this.containerElement.appendChild(this.sizeIndicatorElement);
+        this.containerElement.appendChild(this.vScrollbar);
         this.element.appendChild(this.$measureNode);
 
         parent.appendChild(this.containerElement);
@@ -666,14 +685,19 @@ Terminal.prototype.scroll = function () {
     a === this.lines.length ? this.lines.push(this.blankLine()) : this.lines.splice(a, 0, this.blankLine());
     0 !== this.scrollTop && (0 !== this.ybase && (this.ybase--, this.ydisp = this.ybase), this.lines.splice(this.ybase + this.scrollTop, 1));
     this.updateRange(this.scrollTop);
-    this.updateRange(this.scrollBottom)
+    this.updateRange(this.scrollBottom);
+    this.updateScrollbar();
 };
 
 Terminal.prototype.scrollDisp = function (a) {
+    var oldydisp = this.ydisp;
     this.ydisp += a;
     this.ydisp >
         this.ybase ? this.ydisp = this.ybase : 0 > this.ydisp && (this.ydisp = 0);
-    this.refresh(0, this.rows - 1)
+
+    this.refresh(0, this.rows - 1);
+    if(this.ydisp != oldydisp)
+        this.updateScrollbar();
 };
 
 Terminal.prototype.write = function (a) {
@@ -690,7 +714,8 @@ Terminal.prototype._write = function (a) {
         y = 0,
         f;
     this.refreshEnd = this.refreshStart = this.y;
-    this.ybase !== this.ydisp && (this.ydisp = this.ybase, this.maxRange());
+    //this.ybase !== this.ydisp && (this.ydisp = this.ybase, this.maxRange());
+    this.ybase !== this.ydisp && (this.maxRange());
 
     for (; y < k; y++) switch (f = a[y], this.state) {
     case 0:
@@ -1543,10 +1568,15 @@ Terminal.prototype.showSize = function (a, c) {
     }, 2E3)
 };
 
-Terminal.prototype.updateRange =
-    function (a) {
-        a < this.refreshStart && (this.refreshStart = a);
-        a > this.refreshEnd && (this.refreshEnd = a)
+Terminal.prototype.updateRange = function (a) {
+    a < this.refreshStart && (this.refreshStart = a);
+    a > this.refreshEnd && (this.refreshEnd = a)
+};
+
+Terminal.prototype.updateScrollbar = function() {
+    var that = this;
+    this.scrollbarInner.style.height = this.vScrollbar.clientHeight * this.lines.length / this.rows + 'px';
+    that.vScrollbar.scrollTop = that.ydisp * that.vScrollbar.clientHeight/ that.rows;
 };
 
 Terminal.prototype.maxRange = function () {
@@ -1890,7 +1920,8 @@ Terminal.prototype.insertLines = function (a) {
     k = this.rows - 1 - this.scrollBottom;
     for (k = this.rows - 1 + this.ybase - k + 1; a--;) this.lines.splice(c, 0, this.blankLine(!0)), this.lines.splice(k, 1);
     this.updateRange(this.y);
-    this.updateRange(this.scrollBottom)
+    this.updateRange(this.scrollBottom);
+    this.updateScrollbar();
 };
 
 Terminal.prototype.deleteLines = function (a) {
@@ -1902,7 +1933,8 @@ Terminal.prototype.deleteLines = function (a) {
     for (k = this.rows - 1 + this.ybase - k; a--;) this.lines.splice(k + 1, 0, this.blankLine(!0)),
     this.lines.splice(c, 1);
     this.updateRange(this.y);
-    this.updateRange(this.scrollBottom)
+    this.updateRange(this.scrollBottom);
+    this.updateScrollbar();
 };
 
 Terminal.prototype.deleteChars = function (a) {
@@ -2129,13 +2161,15 @@ Terminal.prototype.scrollUp = function (a) {
     for (a = a[0] || 1; a--;) this.lines.splice(this.ybase +
         this.scrollTop, 1), this.lines.splice(this.ybase + this.scrollBottom, 0, this.blankLine());
     this.updateRange(this.scrollTop);
-    this.updateRange(this.scrollBottom)
+    this.updateRange(this.scrollBottom);
+    this.updateScrollbar();
 };
 
 Terminal.prototype.scrollDown = function (a) {
     for (a = a[0] || 1; a--;) this.lines.splice(this.ybase + this.scrollBottom, 1), this.lines.splice(this.ybase + this.scrollTop, 0, this.blankLine());
     this.updateRange(this.scrollTop);
-    this.updateRange(this.scrollBottom)
+    this.updateRange(this.scrollBottom);
+    this.updateScrollbar();
 };
 
 Terminal.prototype.initMouseTracking = function (a) {};

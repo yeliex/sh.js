@@ -121,3 +121,26 @@ body {
     color: black;
     padding: 0 3px;
 }
+
+.terminal-container .term_scrollbar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    top: 0;
+    width: 13px;
+    z-index: 6;
+}
+
+.terminal-container .term_scrollbar-v {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    top: 0;
+}
+
+.terminal-container .term_scrollbar-inner {
+    position: absolute;
+    cursor: text;
+    left: 0;
+    top: 0;
+    width: 13px;
+}
