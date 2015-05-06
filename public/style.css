@@ -135,11 +135,11 @@ body {
     overflow-x: hidden;
     overflow-y: scroll;
     top: 0;
+    cursor: default;
 }
 
 .terminal-container .term_scrollbar-inner {
     position: absolute;
-    cursor: text;
     left: 0;
     top: 0;
     width: 13px;

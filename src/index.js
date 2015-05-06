@@ -207,7 +207,7 @@ Terminal.prototype.bindKeys = function () {
         events.on(this.inputElement, "keyup", function (c) {
             return that.keyUp(c)
         }, !0);
-        events.on(document, "keydown", function (c) {
+        events.on(this.containerElement, "keydown", function (c) {
             var k = (Terminal.isMac && c.metaKey || !Terminal.isMac && c.ctrlKey) && 67 === c.keyCode;
             that.selectionMode && (!k && 48 <= c.keyCode && 222 >= c.keyCode && -1 === [91, 92, 93, 144, 145].indexOf(c.keyCode)) && that.inputElement.focus();
             !Terminal.isMac && (k && c.shiftKey && document.execCommand) && (document.execCommand("copy", !0, null), events.cancel(c))
