@@ -3,6 +3,7 @@ var utils = require("./utils");
 var themes = require("./themes");
 var charsets = require("./charsets");
 var str_width = require("east-asian-width").str_width;
+var $ = require("jquery");
 
 function Terminal(cols, rows) {
     events.EventEmitter.call(this);
