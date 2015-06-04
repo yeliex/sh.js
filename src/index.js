@@ -3,7 +3,6 @@ var utils = require("./utils");
 var themes = require("./themes");
 var charsets = require("./charsets");
 var str_width = require("east-asian-width").str_width;
-var $ = require("jquery");
 
 function Terminal(cols, rows) {
     events.EventEmitter.call(this);
@@ -660,14 +659,14 @@ Terminal.prototype.redrawCursor = function () {
 };
 
 Terminal.prototype.redrawInput = function () {
-    var cursorElement = $(this.containerElement).find(".terminal-cursor");
+    var cursorElement = this.containerElement.getElementsByClassName("terminal-cursor")[0];
     var cursorLeft, cursorTop;
 
-    if(cursorElement && cursorElement.offset()) {
-        cursorLeft = cursorElement.offset().left - $(this.containerElement).offset().left;
-        cursorTop = cursorElement.offset().top - $(this.containerElement).offset().top;
-        $(this.inputElement).css("top",cursorTop);
-        $(this.inputElement).css("left",cursorLeft);
+    if(cursorElement) {
+        cursorLeft = cursorElement.offsetLeft;
+        cursorTop = cursorElement.offsetTop;
+        this.inputElement.style.top = cursorTop+"px";
+        this.inputElement.style.left = cursorLeft+"px";
     }
 };
 
