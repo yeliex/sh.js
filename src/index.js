@@ -1144,16 +1144,17 @@ Terminal.prototype.writeChar = function(f) {
     var line = this.lines[this.y + this.ybase],
       x = this.x;
 
-    if(line[x] && str_width(line[x][1]) === 2){
-        line.splice(x + 1, 0, [this.curAttr, " "]);
+    if(line){
+        if(line[x] && str_width(line[x][1]) === 2){
+            line.splice(x + 1, 0, [this.curAttr, " "]);
+        }
+
+        line[x] = [this.curAttr, f];
+
+        if( str_width(f) === 2 && x < this.cols - 1){
+            line.splice(x + 1, 1);
+        }
     }
-
-    line[x] = [this.curAttr, f];
-
-    if( str_width(f) === 2 && x < this.cols - 1){
-        line.splice(x + 1, 1);
-    }
-
 };
 
 Terminal.prototype.writeln = function (a) {
