@@ -736,6 +736,8 @@ Terminal.prototype._write = function (a) {
         case "\b":
             var line = this.lines[this.y + this.ybase],
                 x = this.x - 1;
+            if(x < 0)
+                x = 0;
             var lastChar = line[x][1];
             if (typeof lastChar === 'string') {
                 if (str_width(lastChar) === 2)
