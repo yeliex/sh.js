@@ -1075,6 +1075,7 @@ Terminal.prototype.refresh = function (a, k) {
     for (f = a; f <= k; f++) {
         y = f + this.ydisp;
         z = this.lines[y];
+        if(typeof z === 'undefined') break;
         s = "";
         y = f === this.y && this.cursorState &&
             this.ydisp === this.ybase && !this.cursorHidden ? this.x : -1;
