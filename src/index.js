@@ -470,7 +470,7 @@ Terminal.prototype.sizeToFit = function () {
 Terminal.prototype.bindMouse = function () {
     function a(a) {
         var c, k, p, y;
-        switch (a.type) {
+        switch (a.typeNew || a.type) {
         case "mousedown":
             c =
                 null != a.button ? +a.button : null != a.which ? a.which - 1 : null;~
@@ -561,10 +561,10 @@ Terminal.prototype.bindMouse = function () {
         if (s.mouseEvents) {
             a(f);
             s.selectionMode || s.focus();
-            if (s.vt200Mouse) return a({
-                __proto__: f,
-                type: "mouseup"
-            }), events.cancel(f);
+            if (s.vt200Mouse){
+                f.typeNew = "mouseup";
+                return a(f), events.cancel(f);
+            }
             s.normalMouse && events.on(document, "mousemove", c);
             if (!s.x10Mouse) {
                 var p = function (f) {
