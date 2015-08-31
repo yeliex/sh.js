@@ -511,7 +511,7 @@ Terminal.imeKeytable = { 219:1, 221:1 };
 
 Terminal.prototype.resetState = function(cols, rows) {
     this.cursorState = this.y = this.x = this.ydisp = this.ybase = 0;
-    this.convertEol = this.cursorHidden = !1;
+    this.convertEol = this.cursorHidden = this.scrollHidden = !1;
     this.state = 0;
     this.queue = "";
     this.writeQueue = "";
@@ -950,7 +950,7 @@ Terminal.prototype.bindMouse = function () {
         p = p | y | k;
         s.vt200Mouse ? p &= k : s.normalMouse || (p = 0);
         c = 32 + (p << 2) + c;
-        if (k = u(a)) switch (f(c, k), a.type) {
+        if (k = u(a)) switch (f(c, k), (a.typeNew || a.type)) {
         case "mousedown":
             F = c;
             break;
@@ -1055,7 +1055,9 @@ Terminal.prototype.bindMouse = function () {
     events.on(q, p, function (c) {
         if (s.mouseEvents && !s.x10Mouse && !s.vt300Mouse && !s.decLocator) return a(c), events.cancel(c)
     });
+
     events.on(q, p, function (a) {
+        if (s.scrollHidden) return;
         //if (!s.mouseEvents && !s.applicationKeypad) return "DOMMouseScroll" === a.type ? s.scrollDisp(0 > a.detail ? -5 : 5) : s.scrollDisp(0 < a.wheelDeltaY ? -5 : 5), events.cancel(a)
         if (!s.mouseEvents) return "DOMMouseScroll" === a.type ? s.scrollDisp(0 > a.detail ? -dy : dy) : s.scrollDisp(0 < a.wheelDeltaY ? -dy : dy), events.cancel(a)
     })
@@ -1150,6 +1152,7 @@ Terminal.prototype.scroll = function () {
 };
 
 Terminal.prototype.scrollDisp = function (a) {
+    if(isNaN(a)) return;
     var oldydisp = this.ydisp;
     this.ydisp += a;
     this.ydisp >
@@ -1973,9 +1976,9 @@ Terminal.prototype.resize = function (w, h) {
         f = [this.defAttr, " "];
         for (k = this.lines.length; k--;)
             for (; this.lines[k].length < w;) this.lines[k].push(f)
-    } else if (v > w)
-        for (k = this.lines.length; k--;)
-            for (; this.lines[k].length > w;) this.lines[k].pop();
+    } //else if (v > w)
+    //    for (k = this.lines.length; k--;)
+    //        for (; this.lines[k].length > w;) this.lines[k].pop();
     this.setupStops(v);
     this.cols = w;
 
@@ -2037,9 +2040,8 @@ Terminal.prototype.updateRange = function (a) {
 };
 
 Terminal.prototype.updateScrollbar = function() {
-    var that = this;
     this.scrollbarInner.style.height = this.vScrollbar.clientHeight * this.lines.length / this.rows + 'px';
-    that.vScrollbar.scrollTop = that.ydisp * that.vScrollbar.clientHeight/ that.rows;
+    this.vScrollbar.scrollTop = (this.ydisp ? this.ydisp : this.ybase) * this.vScrollbar.clientHeight/ this.rows;
 };
 
 Terminal.prototype.maxRange = function () {
@@ -2541,7 +2543,9 @@ Terminal.prototype.setMode = function (a) {
                 scrollTop: this.scrollTop,
                 scrollBottom: this.scrollBottom,
                 tabs: this.tabs
-            }, this.reset(), this.normal = a, this.showCursor())
+            }, this.reset(), this.normal = a, this.showCursor());
+            this.vScrollbar.style.display = 'none';
+            this.scrollHidden = !0;
         }
     } else switch (a) {
     case 4:
@@ -2594,7 +2598,10 @@ Terminal.prototype.resetMode = function (a) {
         case 47:
         case 1047:
             this.normal && (this.lines = this.normal.lines, this.ybase = this.normal.ybase, this.ydisp = this.normal.ydisp, this.x = this.normal.x, this.y = this.normal.y, this.scrollTop = this.normal.scrollTop, this.scrollBottom = this.normal.scrollBottom, this.tabs = this.normal.tabs, this.normal = null, this.refresh(0, this.rows - 1),
-                this.showCursor())
+                this.showCursor());
+            this.updateScrollbar();
+            this.scrollHidden = !1;
+            this.vScrollbar.style.display = 'block';
         }
     } else switch (a) {
     case 4:
@@ -2660,7 +2667,7 @@ Terminal.prototype.setPointerMode = function (a) {};
 
 Terminal.prototype.softReset = function (a) {
     this.applicationCursor =
-        this.applicationKeypad = this.wraparoundMode = this.originMode = this.insertMode = this.cursorHidden = !1;
+        this.applicationKeypad = this.wraparoundMode = this.originMode = this.insertMode = this.cursorHidden = this.scrollHidden = !1;
     this.scrollTop = 0;
     this.scrollBottom = this.rows - 1;
     this.curAttr = this.defAttr;
