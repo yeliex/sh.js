@@ -2040,8 +2040,9 @@ Terminal.prototype.updateRange = function (a) {
 };
 
 Terminal.prototype.updateScrollbar = function() {
+    if(this.vScrollbar.clientHeight == 0) return;
     this.scrollbarInner.style.height = this.vScrollbar.clientHeight * this.lines.length / this.rows + 'px';
-    this.vScrollbar.scrollTop = (this.ydisp ? this.ydisp : this.ybase) * this.vScrollbar.clientHeight/ this.rows;
+    this.vScrollbar.scrollTop = this.ydisp * this.vScrollbar.clientHeight/ this.rows;
 };
 
 Terminal.prototype.maxRange = function () {
