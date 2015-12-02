@@ -3545,10 +3545,10 @@ function isVisible(el) {
 
     // Return true if any of its four corners are visible
     return (
-          (eap = efp(rect.left,  rect.top)) == el || el[contains](eap) == has
-      ||  (eap = efp(rect.right, rect.top)) == el || el[contains](eap) == has
-      ||  (eap = efp(rect.right, rect.bottom)) == el || el[contains](eap) == has
-      ||  (eap = efp(rect.left,  rect.bottom)) == el || el[contains](eap) == has
+          (eap = efp(rect.left + 1,  rect.top + 1)) == el || el[contains](eap) == has
+      ||  (eap = efp(rect.right - 1, rect.top + 1)) == el || el[contains](eap) == has
+      ||  (eap = efp(rect.right - 1, rect.bottom - 1)) == el || el[contains](eap) == has
+      ||  (eap = efp(rect.left + 1,  rect.bottom - 1)) == el || el[contains](eap) == has
     );
 }
 
