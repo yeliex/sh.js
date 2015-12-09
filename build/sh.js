@@ -888,10 +888,28 @@ Terminal.prototype.open = function (parent) {
                 that.focus();
             }, 20)
         });
+        events.on(this.element, "contextmenu", function (c) {
+            that.setInputMax();
+        });
         this.bindMouse();
         null == Terminal.brokenBold && (Terminal.brokenBold = utils.isBoldBroken());
         this.element.style.backgroundColor = this.colors[256];
         this.element.style.color = this.colors[257];
+};
+
+Terminal.prototype.setInputMax = function (){
+    var that = this;
+    this.inputElement.style.top = "0px";
+    this.inputElement.style.left = "0px";
+    this.inputElement.style.right = "0px";
+    this.inputElement.style.bottom = "0px";
+    this.inputElement.style.width = "100%";
+    this.inputElement.style.height = "100%";
+    this.inputElement.style = "";
+    setTimeout(function(){
+        that.inputElement.removeAttribute('style');
+        that.redrawInput();
+    }, 400);
 };
 
 Terminal.prototype.sizeToFit = function () {
