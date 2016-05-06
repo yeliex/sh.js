@@ -353,7 +353,7 @@ Terminal.prototype.open = function (parent) {
         });
 
         events.on(this.vScrollbar, "scroll", function(ev){
-            if (this.scrollbarEnabled) {
+            if (that.scrollbarEnabled) {
                 var newydisp = that.vScrollbar.scrollTop * that.rows / that.vScrollbar.clientHeight;
                 that.scrollDisp(Math.round(newydisp - that.ydisp));
             }
