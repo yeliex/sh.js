@@ -339,6 +339,7 @@ Terminal.prototype.open = function (parent) {
         this.screenKeysElement.appendChild(this.upKeyElement);
         this.screenKeysElement.appendChild(this.rightKeyElement);
 
+        this.scrollbarEnabled = true;
         this.vScrollbar = document.createElement("div");
         this.vScrollbar.className = 'term_scrollbar term_scrollbar-v';
 
@@ -352,8 +353,10 @@ Terminal.prototype.open = function (parent) {
         });
 
         events.on(this.vScrollbar, "scroll", function(ev){
-            var newydisp = that.vScrollbar.scrollTop * that.rows / that.vScrollbar.clientHeight;
-            that.scrollDisp(Math.round(newydisp - that.ydisp));
+            if (this.scrollbarEnabled) {
+                var newydisp = that.vScrollbar.scrollTop * that.rows / that.vScrollbar.clientHeight;
+                that.scrollDisp(Math.round(newydisp - that.ydisp));
+            }
         });
 
 
@@ -736,8 +739,8 @@ Terminal.prototype._write = function (a) {
         y = 0,
         f;
     this.refreshEnd = this.refreshStart = this.y;
-    //this.ybase !== this.ydisp && (this.ydisp = this.ybase, this.maxRange());
-    this.ybase !== this.ydisp && (this.maxRange());
+    this.ybase !== this.ydisp && (this.ydisp = this.ybase, this.maxRange());
+    //this.ybase !== this.ydisp && (this.maxRange());
 
     for (; y < k; y++) switch (f = a[y], this.state) {
     case 0:
@@ -1557,10 +1560,12 @@ Terminal.prototype.resize = function (w, h) {
             }
         }
     } else if (v > h) {
-        for (; v-- > h;) {
-            if (this.ybase > 0 && this.y == h ) {
+        if (this.ybase > 0 && this.y >= h ) {
+            for (var i = this.y; i-- >= h;){
                 this.scroll();
             }
+        }
+        for (; v-- > h;) {
             if (this.lines.length > (h + this.ybase)) this.lines.pop();
             if (this.children.length > h) {
                 f = this.children.pop();
@@ -1580,7 +1585,8 @@ Terminal.prototype.resize = function (w, h) {
 
     this.normal = null;
     this.showSize(w, h);
-    this.emit("resize", w, h)
+    this.emit("resize", w, h);
+    this.updateScrollbar();
 };
 
 Terminal.prototype.showSize = function (a, c) {
@@ -1599,9 +1605,11 @@ Terminal.prototype.updateRange = function (a) {
 };
 
 Terminal.prototype.updateScrollbar = function() {
+    this.scrollbarEnabled = false;
     if(this.vScrollbar.clientHeight == 0) return;
     this.scrollbarInner.style.height = this.vScrollbar.clientHeight * this.lines.length / this.rows + 'px';
     this.vScrollbar.scrollTop = this.ydisp * this.vScrollbar.clientHeight/ this.rows;
+    this.scrollbarEnabled = true;
 };
 
 Terminal.prototype.maxRange = function () {
@@ -1682,7 +1690,8 @@ Terminal.prototype.reverseIndex = function () {
 
 Terminal.prototype.reset = function () {
     this.resetState(this.cols, this.rows);
-    this.refresh(0, this.rows - 1)
+    this.refresh(0, this.rows - 1);
+    this.updateScrollbar();
 };
 
 Terminal.prototype.tabSet = function () {
