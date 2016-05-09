@@ -347,7 +347,6 @@ Terminal.prototype.open = function (parent) {
         this.scrollbarInner.className = "term_scrollbar-inner";
 
         this.vScrollbar.appendChild(this.scrollbarInner);
-        //events.on(this.vScrollbar, "scroll", this.onScroll.bind(this));
         events.on(this.vScrollbar, "mousedown", function(ev){
             ev.preventDefault;
             that.scrollbarEnabled = true;
@@ -1554,7 +1553,10 @@ Terminal.prototype.resize = function (w, h) {
     v = this.rows;
     if (v < h) {
         for (f = this.element; v++ < h;) {
-            if (this.lines.length < (h + this.ybase)) {
+            if (this.ybase > 0) {
+                this.ybase--;
+                this.y++;
+            } else if (this.lines.length < (h + this.ybase)) {
                 this.lines.push(this.blankLine())
             }
             if (this.children.length < h) {
@@ -2103,6 +2105,9 @@ Terminal.prototype.setMode = function (a) {
             break;
         case 25:
             this.cursorHidden = !1;
+            this.scrollHidden = !1;
+            this.vScrollbar.style.display = 'block';
+            this.updateScrollbar();
             break;
         case 1049:
         case 47:
@@ -2166,15 +2171,17 @@ Terminal.prototype.resetMode = function (a) {
             break;
         case 25:
             this.cursorHidden = !0;
+            this.vScrollbar.style.display = 'none';
+            this.scrollHidden = !0;
             break;
         case 1049:
         case 47:
         case 1047:
             this.normal && (this.lines = this.normal.lines, this.ybase = this.normal.ybase, this.ydisp = this.normal.ydisp, this.x = this.normal.x, this.y = this.normal.y, this.scrollTop = this.normal.scrollTop, this.scrollBottom = this.normal.scrollBottom, this.tabs = this.normal.tabs, this.normal = null, this.refresh(0, this.rows - 1),
                 this.showCursor());
-            this.updateScrollbar();
             this.scrollHidden = !1;
             this.vScrollbar.style.display = 'block';
+            this.updateScrollbar();
         }
     } else switch (a) {
     case 4:
