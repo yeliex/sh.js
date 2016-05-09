@@ -798,7 +798,7 @@ Terminal.prototype.open = function (parent) {
         this.screenKeysElement.appendChild(this.upKeyElement);
         this.screenKeysElement.appendChild(this.rightKeyElement);
 
-        this.scrollbarEnabled = true;
+        this.scrollbarEnabled = false;
         this.vScrollbar = document.createElement("div");
         this.vScrollbar.className = 'term_scrollbar term_scrollbar-v';
 
@@ -809,12 +809,17 @@ Terminal.prototype.open = function (parent) {
         //events.on(this.vScrollbar, "scroll", this.onScroll.bind(this));
         events.on(this.vScrollbar, "mousedown", function(ev){
             ev.preventDefault;
+            that.scrollbarEnabled = true;
+        });
+        events.on(this.vScrollbar, "mouseup", function(ev){
+            ev.preventDefault;
+            that.scrollbarEnabled = false;
         });
 
         events.on(this.vScrollbar, "scroll", function(ev){
             if (that.scrollbarEnabled) {
                 var newydisp = that.vScrollbar.scrollTop * that.rows / that.vScrollbar.clientHeight;
-                that.scrollDisp(Math.round(newydisp - that.ydisp));
+                that.scrollDisp(Math.round(newydisp - that.ydisp), true);
             }
         });
 
@@ -1172,7 +1177,7 @@ Terminal.prototype.scroll = function () {
     this.updateScrollbar();
 };
 
-Terminal.prototype.scrollDisp = function (a) {
+Terminal.prototype.scrollDisp = function (a, s) {
     if(isNaN(a)) return;
     var oldydisp = this.ydisp;
     this.ydisp += a;
@@ -1180,8 +1185,9 @@ Terminal.prototype.scrollDisp = function (a) {
         this.ybase ? this.ydisp = this.ybase : 0 > this.ydisp && (this.ydisp = 0);
 
     this.refresh(0, this.rows - 1);
-    if(this.ydisp != oldydisp)
+    if(!s && this.ydisp != oldydisp){
         this.updateScrollbar();
+    }
 };
 
 Terminal.prototype.write = function (a) {
@@ -2064,11 +2070,9 @@ Terminal.prototype.updateRange = function (a) {
 };
 
 Terminal.prototype.updateScrollbar = function() {
-    this.scrollbarEnabled = false;
     if(this.vScrollbar.clientHeight == 0) return;
     this.scrollbarInner.style.height = this.vScrollbar.clientHeight * this.lines.length / this.rows + 'px';
     this.vScrollbar.scrollTop = this.ydisp * this.vScrollbar.clientHeight/ this.rows;
-    this.scrollbarEnabled = true;
 };
 
 Terminal.prototype.maxRange = function () {
