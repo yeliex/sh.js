@@ -511,6 +511,7 @@ Terminal.imeKeytable = { 219:1, 221:1 };
 
 Terminal.prototype.resetState = function(cols, rows) {
     this.cursorState = this.y = this.x = this.ydisp = this.ybase = 0;
+    this.yold = 0;
     this.convertEol = this.cursorHidden = this.scrollHidden = !1;
     this.state = 0;
     this.queue = "";
@@ -2203,8 +2204,7 @@ Terminal.prototype.cursorPos = function (a) {
     0 > c ? c = 0 : c >= this.rows && (c = this.rows - 1);
     0 > a ? a = 0 : a >= this.cols && (a = this.cols - 1);
 
-
-
+    this.yold = this.y;
     this.x = a;
     this.y = c;
 
@@ -2316,6 +2316,10 @@ Terminal.prototype.eraseInDisplay = function (a) {
         for (a = this.y; a--;) this.eraseLine(a);
         break;
     case 2:
+        for (a = this.yold; a--;) {
+            this.scroll();
+        }
+        this.yold = 0;
         for (a = this.rows; a--;) this.eraseLine(a)
     }
 };
