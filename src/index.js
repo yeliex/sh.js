@@ -1569,7 +1569,7 @@ Terminal.prototype.resize = function (w, h) {
             }
         }
     } else if (v > h) {
-        if (this.ybase > 0 && this.y >= h ) {
+        if (this.y >= h ) {
             for (var i = this.y; i-- >= h;){
                 this.scroll();
             }
