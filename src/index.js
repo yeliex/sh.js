@@ -1844,7 +1844,11 @@ Terminal.prototype.setX = function (start, end){
     }
 };
 
-
+Terminal.prototype.clearScrollbackBuffer = function () {
+    this.lines.splice(0, this.ybase);
+    this.ybase = 0;
+    this.updateScrollbar();
+};
 
 Terminal.prototype.eraseInDisplay = function (a) {
     switch (a[0]) {
